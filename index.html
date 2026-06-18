@@ -9,40 +9,27 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .fade-in {
-            animation: fadeIn 0.4s ease-out;
-        }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .card-flip {
-            perspective: 1000px;
-        }
-        .card-flip-inner {
-            transition: transform 0.5s;
-            transform-style: preserve-3d;
-        }
-        .card-flip-inner.flipped {
-            transform: rotateY(180deg);
-        }
-        .card-front, .card-back {
-            backface-visibility: hidden;
-        }
-        .card-back {
-            transform: rotateY(180deg);
-        }
-        .russian-letter {
-            font-family: 'Inter', serif;
-        }
-        .tab-active {
-            border-bottom: 3px solid #dc2626;
-            color: #dc2626;
-            font-weight: 600;
-        }
-        .category-btn.active {
-            background-color: #dc2626;
-            color: white;
+        .card-flip { perspective: 1000px; }
+        .card-flip-inner { transition: transform 0.5s; transform-style: preserve-3d; }
+        .card-flip-inner.flipped { transform: rotateY(180deg); }
+        .card-front, .card-back { backface-visibility: hidden; }
+        .card-back { transform: rotateY(180deg); }
+        .russian-letter { font-family: 'Inter', serif; }
+        .tab-active { border-bottom: 3px solid #dc2626; color: #dc2626; font-weight: 600; }
+        .category-btn.active { background-color: #dc2626; color: white; }
+        .level-btn.active { background-color: #dc2626; color: white; border-color: #dc2626; }
+        .level-btn.locked { opacity: 0.5; cursor: not-allowed; }
+        .level-badge { font-size: 0.65rem; padding: 1px 6px; border-radius: 9999px; }
+        .progress-ring { transform: rotate(-90deg); }
+        .xp-pop { animation: xpPop 0.6s ease-out; }
+        @keyframes xpPop {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-30px) scale(1.3); }
         }
     </style>
 </head>
@@ -54,6 +41,20 @@
                 <span class="text-2xl font-bold russian-letter">Я</span>
                 <span class="font-bold text-lg">Lær Russisk</span>
             </div>
+            <div class="flex items-center gap-3">
+                <div id="header-level" class="hidden items-center gap-2 text-sm">
+                    <div class="flex items-center gap-1">
+                        <svg width="28" height="28" class="progress-ring">
+                            <circle cx="14" cy="14" r="11" stroke="#e7e5e4" stroke-width="3" fill="none"/>
+                            <circle id="xp-ring" cx="14" cy="14" r="11" stroke="#dc2626" stroke-width="3" fill="none"
+                                stroke-dasharray="69.1" stroke-dashoffset="69.1" stroke-linecap="round"/>
+                        </svg>
+                        <span id="header-xp" class="text-xs text-stone-500 font-medium"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container mx-auto max-w-3xl mt-2">
             <nav id="main-nav" class="flex gap-1 text-sm overflow-x-auto">
                 <button onclick="showSection('home')" data-tab="home" class="tab-btn px-3 py-2 rounded-t text-stone-500 hover:text-red-600 whitespace-nowrap tab-active">
                     <i class="fas fa-home mr-1"></i>Hjem
@@ -86,26 +87,86 @@
                 <p class="text-lg text-stone-600 max-w-lg mx-auto">
                     Lær det russiske alfabetet, bygg ordforråd, øv på vanlige fraser, og test kunnskapen din med quiz.
                 </p>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto pt-4">
-                    <button onclick="showSection('alphabet')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 hover:border-red-400 hover:shadow-md transition-all text-center">
-                        <div class="text-red-600 text-3xl mb-2 russian-letter font-bold">Аа</div>
+
+                <!-- Level Progress -->
+                <div id="home-progress" class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 max-w-md mx-auto text-left">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-stone-800">Din fremgang</h3>
+                        <span id="home-level-badge" class="level-badge bg-green-100 text-green-700 font-semibold"></span>
+                    </div>
+                    <div class="mb-2">
+                        <div class="flex justify-between text-sm text-stone-500 mb-1">
+                            <span id="home-xp-text"></span>
+                            <span id="home-xp-next"></span>
+                        </div>
+                        <div class="w-full bg-stone-200 rounded-full h-2.5">
+                            <div id="home-xp-bar" class="bg-red-600 h-2.5 rounded-full transition-all duration-500"></div>
+                        </div>
+                    </div>
+                    <div id="home-stats" class="grid grid-cols-3 gap-3 mt-4 text-center">
+                        <div>
+                            <div id="stat-quizzes" class="text-2xl font-bold text-red-600">0</div>
+                            <div class="text-xs text-stone-400">Quizer fullført</div>
+                        </div>
+                        <div>
+                            <div id="stat-words" class="text-2xl font-bold text-red-600">0</div>
+                            <div class="text-xs text-stone-400">Ord lært</div>
+                        </div>
+                        <div>
+                            <div id="stat-streak" class="text-2xl font-bold text-red-600">0</div>
+                            <div class="text-xs text-stone-400">Beste streak</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto pt-2">
+                    <div id="level-card-1" class="bg-white rounded-xl shadow-sm border-2 border-green-300 p-5 text-left cursor-pointer hover:shadow-md transition-all" onclick="selectLevelAndGo(1)">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="level-badge bg-green-100 text-green-700 font-bold">Nivå 1</span>
+                            <span class="text-green-600"><i class="fas fa-seedling"></i></span>
+                        </div>
+                        <div class="font-bold text-stone-800">Nybegynner</div>
+                        <div class="text-xs text-stone-400 mt-1">Alfabet, grunnord, enkle fraser</div>
+                        <div id="level1-progress" class="text-xs text-green-600 font-medium mt-2"></div>
+                    </div>
+                    <div id="level-card-2" class="bg-white rounded-xl shadow-sm border-2 border-stone-200 p-5 text-left cursor-pointer hover:shadow-md transition-all" onclick="selectLevelAndGo(2)">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="level-badge bg-blue-100 text-blue-700 font-bold">Nivå 2</span>
+                            <span class="text-blue-600"><i class="fas fa-fire"></i></span>
+                        </div>
+                        <div class="font-bold text-stone-800">Mellomnivå</div>
+                        <div class="text-xs text-stone-400 mt-1">Mer ordforråd, lengre setninger</div>
+                        <div id="level2-progress" class="text-xs text-blue-600 font-medium mt-2"></div>
+                    </div>
+                    <div id="level-card-3" class="bg-white rounded-xl shadow-sm border-2 border-stone-200 p-5 text-left cursor-pointer hover:shadow-md transition-all" onclick="selectLevelAndGo(3)">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="level-badge bg-purple-100 text-purple-700 font-bold">Nivå 3</span>
+                            <span class="text-purple-600"><i class="fas fa-star"></i></span>
+                        </div>
+                        <div class="font-bold text-stone-800">Viderekomne</div>
+                        <div class="text-xs text-stone-400 mt-1">Idiomer, grammatikk, samtale</div>
+                        <div id="level3-progress" class="text-xs text-purple-600 font-medium mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Navigation -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto pt-2">
+                    <button onclick="showSection('alphabet')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-5 hover:border-red-400 hover:shadow-md transition-all text-center">
+                        <div class="text-red-600 text-2xl mb-2 russian-letter font-bold">Аа</div>
                         <div class="text-sm font-medium text-stone-700">Alfabet</div>
-                        <div class="text-xs text-stone-400 mt-1">33 bokstaver</div>
                     </button>
-                    <button onclick="showSection('vocabulary')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 hover:border-red-400 hover:shadow-md transition-all text-center">
-                        <div class="text-red-600 text-3xl mb-2"><i class="fas fa-layer-group"></i></div>
+                    <button onclick="showSection('vocabulary')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-5 hover:border-red-400 hover:shadow-md transition-all text-center">
+                        <div class="text-red-600 text-2xl mb-2"><i class="fas fa-layer-group"></i></div>
                         <div class="text-sm font-medium text-stone-700">Ordforråd</div>
-                        <div class="text-xs text-stone-400 mt-1">Flashkort</div>
                     </button>
-                    <button onclick="showSection('phrases')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 hover:border-red-400 hover:shadow-md transition-all text-center">
-                        <div class="text-red-600 text-3xl mb-2"><i class="fas fa-comment-dots"></i></div>
+                    <button onclick="showSection('phrases')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-5 hover:border-red-400 hover:shadow-md transition-all text-center">
+                        <div class="text-red-600 text-2xl mb-2"><i class="fas fa-comment-dots"></i></div>
                         <div class="text-sm font-medium text-stone-700">Fraser</div>
-                        <div class="text-xs text-stone-400 mt-1">Dagligtale</div>
                     </button>
-                    <button onclick="showSection('quiz')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 hover:border-red-400 hover:shadow-md transition-all text-center">
-                        <div class="text-red-600 text-3xl mb-2"><i class="fas fa-trophy"></i></div>
+                    <button onclick="showSection('quiz')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-5 hover:border-red-400 hover:shadow-md transition-all text-center">
+                        <div class="text-red-600 text-2xl mb-2"><i class="fas fa-trophy"></i></div>
                         <div class="text-sm font-medium text-stone-700">Quiz</div>
-                        <div class="text-xs text-stone-400 mt-1">Test deg selv</div>
                     </button>
                 </div>
             </div>
@@ -114,18 +175,14 @@
         <!-- ALPHABET -->
         <div id="section-alphabet" class="section hidden fade-in">
             <h2 class="text-2xl font-bold text-stone-900 mb-2">Det russiske alfabetet</h2>
-            <p class="text-stone-500 mb-6">Trykk på en bokstav for å høre uttalen og se eksempler.</p>
-
+            <p class="text-stone-500 mb-6">Trykk på en bokstav for å se uttalen og eksempler.</p>
             <div class="mb-4 flex gap-2 flex-wrap">
                 <button onclick="filterAlphabet('all')" class="alpha-filter px-3 py-1 rounded-full text-sm border border-stone-300 bg-red-600 text-white">Alle</button>
                 <button onclick="filterAlphabet('vowel')" class="alpha-filter px-3 py-1 rounded-full text-sm border border-stone-300 text-stone-600 hover:bg-red-50">Vokaler</button>
                 <button onclick="filterAlphabet('consonant')" class="alpha-filter px-3 py-1 rounded-full text-sm border border-stone-300 text-stone-600 hover:bg-red-50">Konsonanter</button>
                 <button onclick="filterAlphabet('sign')" class="alpha-filter px-3 py-1 rounded-full text-sm border border-stone-300 text-stone-600 hover:bg-red-50">Tegn</button>
             </div>
-
-            <div id="alphabet-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-            </div>
-
+            <div id="alphabet-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
             <div id="letter-detail" class="hidden mt-6 bg-white rounded-xl shadow-lg border border-stone-200 p-6 fade-in">
                 <div class="flex items-center gap-4 mb-4">
                     <span id="detail-letter" class="text-6xl font-bold text-red-600 russian-letter"></span>
@@ -152,11 +209,12 @@
 
         <!-- VOCABULARY -->
         <div id="section-vocabulary" class="section hidden fade-in">
-            <h2 class="text-2xl font-bold text-stone-900 mb-2">Ordforråd</h2>
-            <p class="text-stone-500 mb-6">Trykk på et kort for å se oversettelsen. Bruk pilene for å bla.</p>
-
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-2xl font-bold text-stone-900">Ordforråd</h2>
+            </div>
+            <p class="text-stone-500 mb-4">Trykk på et kort for å se oversettelsen.</p>
+            <div id="level-selector-vocab" class="flex gap-2 mb-4"></div>
             <div class="flex gap-2 flex-wrap mb-6" id="vocab-categories"></div>
-
             <div class="flex flex-col items-center">
                 <div class="card-flip w-full max-w-md h-56 cursor-pointer mb-4" onclick="flipCard()">
                     <div id="flashcard" class="card-flip-inner w-full h-full relative">
@@ -172,7 +230,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="flex items-center gap-4">
                     <button onclick="prevCard()" class="w-12 h-12 rounded-full bg-white border border-stone-200 hover:border-red-400 flex items-center justify-center text-stone-500 hover:text-red-600 transition-colors shadow-sm">
                         <i class="fas fa-chevron-left"></i>
@@ -191,10 +248,9 @@
         <!-- PHRASES -->
         <div id="section-phrases" class="section hidden fade-in">
             <h2 class="text-2xl font-bold text-stone-900 mb-2">Vanlige fraser</h2>
-            <p class="text-stone-500 mb-6">Nyttige russiske fraser for hverdagen. Trykk for å se uttale.</p>
-
+            <p class="text-stone-500 mb-4">Nyttige russiske fraser for hverdagen.</p>
+            <div id="level-selector-phrases" class="flex gap-2 mb-4"></div>
             <div class="flex gap-2 flex-wrap mb-6" id="phrase-categories"></div>
-
             <div id="phrases-list" class="space-y-3"></div>
         </div>
 
@@ -205,8 +261,8 @@
                     <i class="fas fa-brain text-4xl"></i>
                 </div>
                 <h2 class="text-3xl font-bold text-stone-900">Test kunnskapen din</h2>
-                <p class="text-stone-600 max-w-md mx-auto">Velg quiztype og test hva du har lært om russisk.</p>
-
+                <p class="text-stone-600 max-w-md mx-auto">Velg nivå og quiztype. Få XP for riktige svar!</p>
+                <div id="level-selector-quiz" class="flex gap-2 justify-center mb-2"></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
                     <button onclick="startQuiz('alphabet')" class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 hover:border-red-400 hover:shadow-md transition-all">
                         <div class="text-red-600 text-2xl mb-2 russian-letter font-bold">Бб</div>
@@ -225,7 +281,6 @@
                     </button>
                 </div>
             </div>
-
             <div id="quiz-active" class="hidden fade-in">
                 <div class="mb-6">
                     <div class="flex justify-between text-sm text-stone-500 mb-2">
@@ -236,19 +291,15 @@
                         <div id="quiz-progress" class="bg-red-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                 </div>
-
                 <div class="bg-white rounded-2xl shadow-lg border border-stone-100 p-6 md:p-8">
                     <h3 id="quiz-question" class="text-xl md:text-2xl font-semibold mb-6 text-stone-800"></h3>
                     <div id="quiz-options" class="space-y-3"></div>
                     <div id="quiz-feedback" class="hidden mt-6 p-4 rounded-xl border-l-4"></div>
                     <div class="mt-6 flex justify-end">
-                        <button id="quiz-next-btn" onclick="quizNext()" class="hidden px-6 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors font-medium">
-                            Neste
-                        </button>
+                        <button id="quiz-next-btn" onclick="quizNext()" class="hidden px-6 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors font-medium">Neste</button>
                     </div>
                 </div>
             </div>
-
             <div id="quiz-result" class="hidden text-center space-y-6 fade-in">
                 <div class="inline-block p-6 rounded-full bg-red-50 text-red-600 mb-2">
                     <i class="fas fa-trophy text-5xl"></i>
@@ -257,74 +308,198 @@
                 <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-8 max-w-sm mx-auto">
                     <p class="text-stone-500 mb-2">Din score</p>
                     <div id="quiz-final-score" class="text-5xl font-bold text-red-600 mb-2"></div>
-                    <div id="quiz-final-pct" class="text-2xl font-semibold text-stone-500 mb-4"></div>
+                    <div id="quiz-final-pct" class="text-2xl font-semibold text-stone-500 mb-2"></div>
+                    <div id="quiz-xp-earned" class="text-lg font-bold text-amber-600 mb-2"></div>
                     <p id="quiz-result-msg" class="text-lg font-medium text-stone-700"></p>
+                    <div id="quiz-level-up" class="hidden mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div class="text-amber-700 font-bold"><i class="fas fa-arrow-up mr-1"></i>Nivå opp!</div>
+                        <div id="quiz-new-level" class="text-sm text-amber-600"></div>
+                    </div>
                 </div>
-                <div class="flex gap-3 justify-center">
-                    <button onclick="showSection('quiz'); resetQuiz()" class="px-6 py-3 bg-white border-2 border-stone-200 text-stone-700 font-semibold rounded-full hover:border-red-600 hover:text-red-600 transition-colors">
-                        <i class="fas fa-redo mr-2"></i>Prøv igjen
-                    </button>
-                </div>
+                <button onclick="showSection('quiz'); resetQuiz()" class="px-6 py-3 bg-white border-2 border-stone-200 text-stone-700 font-semibold rounded-full hover:border-red-600 hover:text-red-600 transition-colors">
+                    <i class="fas fa-redo mr-2"></i>Prøv igjen
+                </button>
             </div>
         </div>
-
     </main>
 
     <footer class="bg-stone-50 p-4 text-center text-stone-400 text-sm">
         <p>Lær Russisk &mdash; Russisk-Norsk læringsapp</p>
     </footer>
 
-    <script>
-    // ===== ALPHABET DATA =====
-    const alphabet = [
-        { letter: "А а", name: "A", type: "vowel", pronunciation: "Som norsk «a»", example: "Арбуз (arbuz) — vannmelon" },
-        { letter: "Б б", name: "Be", type: "consonant", pronunciation: "Som norsk «b»", example: "Банан (banan) — banan" },
-        { letter: "В в", name: "Ve", type: "consonant", pronunciation: "Som norsk «v»", example: "Вода (voda) — vann" },
-        { letter: "Г г", name: "Ge", type: "consonant", pronunciation: "Som norsk «g»", example: "Город (gorod) — by" },
-        { letter: "Д д", name: "De", type: "consonant", pronunciation: "Som norsk «d»", example: "Дом (dom) — hus" },
-        { letter: "Е е", name: "Je", type: "vowel", pronunciation: "Som norsk «je» (etter konsonant: «e»)", example: "Ель (jel') — gran" },
-        { letter: "Ё ё", name: "Jo", type: "vowel", pronunciation: "Som norsk «jo»", example: "Ёлка (jolka) — juletre" },
-        { letter: "Ж ж", name: "Zje", type: "consonant", pronunciation: "Stemt sj-lyd, som «j» i fransk «journal»", example: "Жук (zjuk) — bille" },
-        { letter: "З з", name: "Ze", type: "consonant", pronunciation: "Som norsk «s» men stemt (som engelsk «z»)", example: "Зима (zima) — vinter" },
-        { letter: "И и", name: "I", type: "vowel", pronunciation: "Som norsk «i»", example: "Игра (igra) — spill" },
-        { letter: "Й й", name: "Kort I", type: "consonant", pronunciation: "Som norsk «j» (kort)", example: "Йогурт (jogurt) — yoghurt" },
-        { letter: "К к", name: "Ka", type: "consonant", pronunciation: "Som norsk «k»", example: "Кот (kot) — katt" },
-        { letter: "Л л", name: "El", type: "consonant", pronunciation: "Som norsk «l»", example: "Лампа (lampa) — lampe" },
-        { letter: "М м", name: "Em", type: "consonant", pronunciation: "Som norsk «m»", example: "Мама (mama) — mamma" },
-        { letter: "Н н", name: "En", type: "consonant", pronunciation: "Som norsk «n»", example: "Нос (nos) — nese" },
-        { letter: "О о", name: "O", type: "vowel", pronunciation: "Som norsk «å» (trykk) eller «a» (utrykk)", example: "Окно (akno) — vindu" },
-        { letter: "П п", name: "Pe", type: "consonant", pronunciation: "Som norsk «p»", example: "Папа (papa) — pappa" },
-        { letter: "Р р", name: "Er", type: "consonant", pronunciation: "Rullet «r»", example: "Рыба (ryba) — fisk" },
-        { letter: "С с", name: "Es", type: "consonant", pronunciation: "Som norsk «s»", example: "Собака (sobaka) — hund" },
-        { letter: "Т т", name: "Te", type: "consonant", pronunciation: "Som norsk «t»", example: "Торт (tort) — kake" },
-        { letter: "У у", name: "U", type: "vowel", pronunciation: "Som norsk «u»", example: "Утка (utka) — and" },
-        { letter: "Ф ф", name: "Ef", type: "consonant", pronunciation: "Som norsk «f»", example: "Факт (fakt) — faktum" },
-        { letter: "Х х", name: "Kha", type: "consonant", pronunciation: "Som norsk «kh», lik tysk «ch» i «Bach»", example: "Хлеб (khleb) — brød" },
-        { letter: "Ц ц", name: "Tse", type: "consonant", pronunciation: "Som «ts»", example: "Цирк (tsirk) — sirkus" },
-        { letter: "Ч ч", name: "Tsje", type: "consonant", pronunciation: "Som «tsj», lik engelsk «ch»", example: "Час (tsjas) — time" },
-        { letter: "Ш ш", name: "Sja", type: "consonant", pronunciation: "Som norsk «sj» (hard)", example: "Школа (sjkola) — skole" },
-        { letter: "Щ щ", name: "Sjtsja", type: "consonant", pronunciation: "Som lang myk «sj»", example: "Щука (sjtsjooka) — gjedde" },
-        { letter: "Ъ ъ", name: "Hardt tegn", type: "sign", pronunciation: "Ingen lyd — skiller konsonant fra vokal", example: "Объект (objekt) — objekt" },
-        { letter: "Ы ы", name: "Y", type: "vowel", pronunciation: "Mellom «i» og «u», dyp i-lyd", example: "Рыба (ryba) — fisk" },
-        { letter: "Ь ь", name: "Mykt tegn", type: "sign", pronunciation: "Ingen lyd — gjør konsonant myk", example: "Мать (mat') — mor" },
-        { letter: "Э э", name: "E", type: "vowel", pronunciation: "Som norsk «e» (åpen)", example: "Это (eto) — dette" },
-        { letter: "Ю ю", name: "Ju", type: "vowel", pronunciation: "Som norsk «ju»", example: "Юг (jug) — sør" },
-        { letter: "Я я", name: "Ja", type: "vowel", pronunciation: "Som norsk «ja»", example: "Яблоко (jabloko) — eple" }
-    ];
+<script>
+// ===== PROGRESS SYSTEM =====
+const LEVELS = [
+    { name: "Nybegynner", num: 1, xpRequired: 0, color: "green", icon: "seedling" },
+    { name: "Mellomnivå", num: 2, xpRequired: 150, color: "blue", icon: "fire" },
+    { name: "Viderekomne", num: 3, xpRequired: 400, color: "purple", icon: "star" }
+];
 
-    // ===== VOCABULARY DATA =====
-    const vocabData = {
+function loadProgress() {
+    const defaults = { xp: 0, quizzesCompleted: 0, wordsLearned: 0, bestStreak: 0, unlockedLevel: 1 };
+    try {
+        const saved = JSON.parse(localStorage.getItem('russisk-progress'));
+        return saved ? { ...defaults, ...saved } : defaults;
+    } catch { return defaults; }
+}
+
+function saveProgress(p) {
+    localStorage.setItem('russisk-progress', JSON.stringify(p));
+}
+
+function getCurrentLevel(p) {
+    for (let i = LEVELS.length - 1; i >= 0; i--) {
+        if (p.xp >= LEVELS[i].xpRequired) return LEVELS[i];
+    }
+    return LEVELS[0];
+}
+
+function getNextLevel(p) {
+    const cur = getCurrentLevel(p);
+    const idx = LEVELS.findIndex(l => l.num === cur.num);
+    return idx < LEVELS.length - 1 ? LEVELS[idx + 1] : null;
+}
+
+function addXP(amount) {
+    const p = loadProgress();
+    const oldLevel = getCurrentLevel(p);
+    p.xp += amount;
+    const newLevel = getCurrentLevel(p);
+    if (newLevel.num > p.unlockedLevel) p.unlockedLevel = newLevel.num;
+    saveProgress(p);
+    updateAllUI();
+    return newLevel.num > oldLevel.num ? newLevel : null;
+}
+
+function isLevelUnlocked(levelNum) {
+    return loadProgress().xp >= LEVELS[levelNum - 1].xpRequired;
+}
+
+function updateAllUI() {
+    const p = loadProgress();
+    const cur = getCurrentLevel(p);
+    const next = getNextLevel(p);
+
+    document.getElementById('header-level').classList.remove('hidden');
+    document.getElementById('header-level').classList.add('flex');
+
+    const xpInLevel = p.xp - cur.xpRequired;
+    const xpNeeded = next ? (next.xpRequired - cur.xpRequired) : 1;
+    const pct = next ? Math.min(xpInLevel / xpNeeded, 1) : 1;
+    const ring = document.getElementById('xp-ring');
+    ring.style.strokeDashoffset = 69.1 * (1 - pct);
+    document.getElementById('header-xp').textContent = `${p.xp} XP`;
+
+    document.getElementById('home-level-badge').textContent = `Nivå ${cur.num}: ${cur.name}`;
+    document.getElementById('home-level-badge').className = `level-badge bg-${cur.color}-100 text-${cur.color}-700 font-semibold`;
+    document.getElementById('home-xp-text').textContent = `${p.xp} XP`;
+    document.getElementById('home-xp-next').textContent = next ? `${next.xpRequired} XP for Nivå ${next.num}` : 'Maks nivå!';
+    const barPct = next ? ((p.xp - cur.xpRequired) / (next.xpRequired - cur.xpRequired)) * 100 : 100;
+    document.getElementById('home-xp-bar').style.width = Math.min(barPct, 100) + '%';
+
+    document.getElementById('stat-quizzes').textContent = p.quizzesCompleted;
+    document.getElementById('stat-words').textContent = p.wordsLearned;
+    document.getElementById('stat-streak').textContent = p.bestStreak;
+
+    LEVELS.forEach((lvl, i) => {
+        const card = document.getElementById(`level-card-${lvl.num}`);
+        const unlocked = isLevelUnlocked(lvl.num);
+        const progEl = document.getElementById(`level${lvl.num}-progress`);
+        if (unlocked) {
+            card.classList.remove('opacity-60');
+            card.style.borderColor = '';
+            progEl.textContent = lvl.num <= cur.num ? 'Ulåst' : '';
+        } else {
+            card.classList.add('opacity-60');
+            progEl.textContent = `Lås opp med ${lvl.xpRequired} XP`;
+        }
+    });
+}
+
+let selectedLevel = 1;
+
+function selectLevel(lvl, context) {
+    if (!isLevelUnlocked(lvl)) return;
+    selectedLevel = lvl;
+    renderLevelSelector(context);
+    if (context === 'vocab') initVocab();
+    if (context === 'phrases') initPhrases();
+}
+
+function selectLevelAndGo(lvl) {
+    if (!isLevelUnlocked(lvl)) return;
+    selectedLevel = lvl;
+    showSection('vocabulary');
+}
+
+function renderLevelSelector(context) {
+    const container = document.getElementById(`level-selector-${context}`);
+    container.innerHTML = '';
+    LEVELS.forEach(lvl => {
+        const unlocked = isLevelUnlocked(lvl.num);
+        const btn = document.createElement('button');
+        const isActive = selectedLevel === lvl.num;
+        btn.className = `level-btn px-3 py-1.5 rounded-full text-sm border transition-colors ${
+            isActive ? 'active' : unlocked ? 'border-stone-300 text-stone-600 hover:bg-red-50' : 'locked border-stone-200 text-stone-300'
+        }`;
+        btn.innerHTML = unlocked
+            ? `<i class="fas fa-${lvl.icon} mr-1"></i>${lvl.name}`
+            : `<i class="fas fa-lock mr-1"></i>${lvl.name}`;
+        btn.onclick = () => selectLevel(lvl.num, context);
+        container.appendChild(btn);
+    });
+}
+
+// ===== ALPHABET DATA =====
+const alphabet = [
+    { letter: "А а", name: "A", type: "vowel", pronunciation: "Som norsk «a»", example: "Арбуз (arbuz) — vannmelon" },
+    { letter: "Б б", name: "Be", type: "consonant", pronunciation: "Som norsk «b»", example: "Банан (banan) — banan" },
+    { letter: "В в", name: "Ve", type: "consonant", pronunciation: "Som norsk «v»", example: "Вода (voda) — vann" },
+    { letter: "Г г", name: "Ge", type: "consonant", pronunciation: "Som norsk «g»", example: "Город (gorod) — by" },
+    { letter: "Д д", name: "De", type: "consonant", pronunciation: "Som norsk «d»", example: "Дом (dom) — hus" },
+    { letter: "Е е", name: "Je", type: "vowel", pronunciation: "Som norsk «je» (etter konsonant: «e»)", example: "Ель (jel') — gran" },
+    { letter: "Ё ё", name: "Jo", type: "vowel", pronunciation: "Som norsk «jo»", example: "Ёлка (jolka) — juletre" },
+    { letter: "Ж ж", name: "Zje", type: "consonant", pronunciation: "Stemt sj-lyd, som «j» i fransk «journal»", example: "Жук (zjuk) — bille" },
+    { letter: "З з", name: "Ze", type: "consonant", pronunciation: "Som norsk «s» men stemt (som engelsk «z»)", example: "Зима (zima) — vinter" },
+    { letter: "И и", name: "I", type: "vowel", pronunciation: "Som norsk «i»", example: "Игра (igra) — spill" },
+    { letter: "Й й", name: "Kort I", type: "consonant", pronunciation: "Som norsk «j» (kort)", example: "Йогурт (jogurt) — yoghurt" },
+    { letter: "К к", name: "Ka", type: "consonant", pronunciation: "Som norsk «k»", example: "Кот (kot) — katt" },
+    { letter: "Л л", name: "El", type: "consonant", pronunciation: "Som norsk «l»", example: "Лампа (lampa) — lampe" },
+    { letter: "М м", name: "Em", type: "consonant", pronunciation: "Som norsk «m»", example: "Мама (mama) — mamma" },
+    { letter: "Н н", name: "En", type: "consonant", pronunciation: "Som norsk «n»", example: "Нос (nos) — nese" },
+    { letter: "О о", name: "O", type: "vowel", pronunciation: "Som norsk «å» (trykk) eller «a» (utrykk)", example: "Окно (akno) — vindu" },
+    { letter: "П п", name: "Pe", type: "consonant", pronunciation: "Som norsk «p»", example: "Папа (papa) — pappa" },
+    { letter: "Р р", name: "Er", type: "consonant", pronunciation: "Rullet «r»", example: "Рыба (ryba) — fisk" },
+    { letter: "С с", name: "Es", type: "consonant", pronunciation: "Som norsk «s»", example: "Собака (sobaka) — hund" },
+    { letter: "Т т", name: "Te", type: "consonant", pronunciation: "Som norsk «t»", example: "Торт (tort) — kake" },
+    { letter: "У у", name: "U", type: "vowel", pronunciation: "Som norsk «u»", example: "Утка (utka) — and" },
+    { letter: "Ф ф", name: "Ef", type: "consonant", pronunciation: "Som norsk «f»", example: "Факт (fakt) — faktum" },
+    { letter: "Х х", name: "Kha", type: "consonant", pronunciation: "Som norsk «kh», lik tysk «ch» i «Bach»", example: "Хлеб (khleb) — brød" },
+    { letter: "Ц ц", name: "Tse", type: "consonant", pronunciation: "Som «ts»", example: "Цирк (tsirk) — sirkus" },
+    { letter: "Ч ч", name: "Tsje", type: "consonant", pronunciation: "Som «tsj», lik engelsk «ch»", example: "Час (tsjas) — time" },
+    { letter: "Ш ш", name: "Sja", type: "consonant", pronunciation: "Som norsk «sj» (hard)", example: "Школа (sjkola) — skole" },
+    { letter: "Щ щ", name: "Sjtsja", type: "consonant", pronunciation: "Som lang myk «sj»", example: "Щука (sjtsjooka) — gjedde" },
+    { letter: "Ъ ъ", name: "Hardt tegn", type: "sign", pronunciation: "Ingen lyd — skiller konsonant fra vokal", example: "Объект (objekt) — objekt" },
+    { letter: "Ы ы", name: "Y", type: "vowel", pronunciation: "Mellom «i» og «u», dyp i-lyd", example: "Рыба (ryba) — fisk" },
+    { letter: "Ь ь", name: "Mykt tegn", type: "sign", pronunciation: "Ingen lyd — gjør konsonant myk", example: "Мать (mat') — mor" },
+    { letter: "Э э", name: "E", type: "vowel", pronunciation: "Som norsk «e» (åpen)", example: "Это (eto) — dette" },
+    { letter: "Ю ю", name: "Ju", type: "vowel", pronunciation: "Som norsk «ju»", example: "Юг (jug) — sør" },
+    { letter: "Я я", name: "Ja", type: "vowel", pronunciation: "Som norsk «ja»", example: "Яблоко (jabloko) — eple" }
+];
+
+// ===== VOCABULARY DATA (by level) =====
+const vocabByLevel = {
+    1: {
         "Hilsener": [
             { ru: "Привет", translit: "Privet", no: "Hei", exRu: "Привет, как дела?", exNo: "Hei, hvordan går det?" },
             { ru: "Здравствуйте", translit: "Zdravstvujte", no: "God dag (formelt)", exRu: "Здравствуйте, меня зовут Анна.", exNo: "God dag, jeg heter Anna." },
             { ru: "До свидания", translit: "Do svidanija", no: "Ha det bra", exRu: "До свидания! До встречи!", exNo: "Ha det bra! Vi sees!" },
-            { ru: "Пока", translit: "Poka", no: "Ha det (uformelt)", exRu: "Пока, увидимся завтра!", exNo: "Ha det, vi sees i morgen!" },
+            { ru: "Пока", translit: "Poka", no: "Ha det (uformelt)", exRu: "Пока, увидимся завтра!", exNo: "Ha det, vi ses i morgen!" },
             { ru: "Доброе утро", translit: "Dobroje utro", no: "God morgen", exRu: "Доброе утро! Как спалось?", exNo: "God morgen! Hvordan sov du?" },
-            { ru: "Добрый день", translit: "Dobryj den'", no: "God dag", exRu: "Добрый день, чем могу помочь?", exNo: "God dag, hva kan jeg hjelpe med?" },
             { ru: "Добрый вечер", translit: "Dobryj vetsjer", no: "God kveld", exRu: "Добрый вечер! Проходите.", exNo: "God kveld! Vær så god og kom inn." },
             { ru: "Спокойной ночи", translit: "Spokojnoj notsji", no: "God natt", exRu: "Спокойной ночи, сладких снов!", exNo: "God natt, søte drømmer!" }
         ],
-        "Tall": [
+        "Tall 1-10": [
             { ru: "Один", translit: "Odin", no: "En (1)", exRu: "Один билет, пожалуйста.", exNo: "En billett, vær så snill." },
             { ru: "Два", translit: "Dva", no: "To (2)", exRu: "У меня два брата.", exNo: "Jeg har to brødre." },
             { ru: "Три", translit: "Tri", no: "Tre (3)", exRu: "Три чашки кофе.", exNo: "Tre kopper kaffe." },
@@ -342,10 +517,8 @@
             { ru: "Молоко", translit: "Moloko", no: "Melk", exRu: "Я люблю молоко.", exNo: "Jeg liker melk." },
             { ru: "Чай", translit: "Tsjaj", no: "Te", exRu: "Хотите чай?", exNo: "Vil du ha te?" },
             { ru: "Кофе", translit: "Kofe", no: "Kaffe", exRu: "Кофе с молоком.", exNo: "Kaffe med melk." },
-            { ru: "Мясо", translit: "Mjaso", no: "Kjøtt", exRu: "Мясо с картошкой.", exNo: "Kjøtt med poteter." },
             { ru: "Рыба", translit: "Ryba", no: "Fisk", exRu: "Свежая рыба.", exNo: "Fersk fisk." },
             { ru: "Яблоко", translit: "Jabloko", no: "Eple", exRu: "Красное яблоко.", exNo: "Rødt eple." },
-            { ru: "Сыр", translit: "Syr", no: "Ost", exRu: "Бутерброд с сыром.", exNo: "Smørbrød med ost." },
             { ru: "Суп", translit: "Sup", no: "Suppe", exRu: "Горячий суп.", exNo: "Varm suppe." }
         ],
         "Familie": [
@@ -353,10 +526,6 @@
             { ru: "Папа", translit: "Papa", no: "Pappa", exRu: "Папа работает.", exNo: "Pappa jobber." },
             { ru: "Брат", translit: "Brat", no: "Bror", exRu: "Мой брат старше меня.", exNo: "Broren min er eldre enn meg." },
             { ru: "Сестра", translit: "Sestra", no: "Søster", exRu: "У меня есть сестра.", exNo: "Jeg har en søster." },
-            { ru: "Сын", translit: "Syn", no: "Sønn", exRu: "Мой сын учится.", exNo: "Sønnen min studerer." },
-            { ru: "Дочь", translit: "Dotsj", no: "Datter", exRu: "Моя дочь маленькая.", exNo: "Datteren min er liten." },
-            { ru: "Муж", translit: "Muzj", no: "Ektemann", exRu: "Мой муж дома.", exNo: "Ektemannen min er hjemme." },
-            { ru: "Жена", translit: "Zjena", no: "Kone", exRu: "Моя жена на работе.", exNo: "Kona mi er på jobb." },
             { ru: "Бабушка", translit: "Babusjka", no: "Bestemor", exRu: "Бабушка печёт пироги.", exNo: "Bestemor baker pai." },
             { ru: "Дедушка", translit: "Dedusjka", no: "Bestefar", exRu: "Дедушка рассказывает истории.", exNo: "Bestefar forteller historier." }
         ],
@@ -364,11 +533,8 @@
             { ru: "Красный", translit: "Krasnyj", no: "Rød", exRu: "Красный цвет.", exNo: "Rød farge." },
             { ru: "Синий", translit: "Sinij", no: "Blå", exRu: "Синее небо.", exNo: "Blå himmel." },
             { ru: "Зелёный", translit: "Zelonyj", no: "Grønn", exRu: "Зелёная трава.", exNo: "Grønt gress." },
-            { ru: "Жёлтый", translit: "Zjoltyj", no: "Gul", exRu: "Жёлтое солнце.", exNo: "Gul sol." },
             { ru: "Белый", translit: "Belyj", no: "Hvit", exRu: "Белый снег.", exNo: "Hvit snø." },
-            { ru: "Чёрный", translit: "Tsjornyj", no: "Svart", exRu: "Чёрная кошка.", exNo: "Svart katt." },
-            { ru: "Серый", translit: "Seryj", no: "Grå", exRu: "Серый волк.", exNo: "Grå ulv." },
-            { ru: "Розовый", translit: "Rozovyj", no: "Rosa", exRu: "Розовые цветы.", exNo: "Rosa blomster." }
+            { ru: "Чёрный", translit: "Tsjornyj", no: "Svart", exRu: "Чёрная кошка.", exNo: "Svart katt." }
         ],
         "Ukedager": [
             { ru: "Понедельник", translit: "Ponedel'nik", no: "Mandag", exRu: "В понедельник я работаю.", exNo: "På mandag jobber jeg." },
@@ -379,10 +545,120 @@
             { ru: "Суббота", translit: "Subbota", no: "Lørdag", exRu: "В субботу мы отдыхаем.", exNo: "På lørdag hviler vi." },
             { ru: "Воскресенье", translit: "Voskresen'je", no: "Søndag", exRu: "Воскресенье — выходной.", exNo: "Søndag er fridag." }
         ]
-    };
+    },
+    2: {
+        "Tall 11-100": [
+            { ru: "Одиннадцать", translit: "Odinnadtsat'", no: "Elleve (11)", exRu: "Одиннадцать игроков.", exNo: "Elleve spillere." },
+            { ru: "Двадцать", translit: "Dvadtsat'", no: "Tjue (20)", exRu: "Двадцать минут.", exNo: "Tjue minutter." },
+            { ru: "Тридцать", translit: "Tridtsat'", no: "Tretti (30)", exRu: "Тридцать градусов.", exNo: "Tretti grader." },
+            { ru: "Пятьдесят", translit: "Pjat'desjat", no: "Femti (50)", exRu: "Пятьдесят процентов.", exNo: "Femti prosent." },
+            { ru: "Сто", translit: "Sto", no: "Hundre (100)", exRu: "Сто рублей.", exNo: "Hundre rubler." }
+        ],
+        "Måneder": [
+            { ru: "Январь", translit: "Janvar'", no: "Januar", exRu: "В январе холодно.", exNo: "I januar er det kaldt." },
+            { ru: "Февраль", translit: "Fevral'", no: "Februar", exRu: "Февраль — короткий месяц.", exNo: "Februar er en kort måned." },
+            { ru: "Март", translit: "Mart", no: "Mars", exRu: "В марте тает снег.", exNo: "I mars smelter snøen." },
+            { ru: "Апрель", translit: "Aprel'", no: "April", exRu: "Апрель — весенний месяц.", exNo: "April er en vårmåned." },
+            { ru: "Май", translit: "Maj", no: "Mai", exRu: "В мае цветут деревья.", exNo: "I mai blomstrer trærne." },
+            { ru: "Июнь", translit: "Ijun'", no: "Juni", exRu: "Июнь — начало лета.", exNo: "Juni er starten på sommeren." },
+            { ru: "Июль", translit: "Ijul'", no: "Juli", exRu: "В июле жарко.", exNo: "I juli er det varmt." },
+            { ru: "Август", translit: "Avgust", no: "August", exRu: "Август — последний месяц лета.", exNo: "August er siste sommermåned." },
+            { ru: "Сентябрь", translit: "Sentjabr'", no: "September", exRu: "В сентябре начинается школа.", exNo: "I september begynner skolen." },
+            { ru: "Октябрь", translit: "Oktjabr'", no: "Oktober", exRu: "Октябрь — осенний месяц.", exNo: "Oktober er en høstmåned." },
+            { ru: "Ноябрь", translit: "Nojabr'", no: "November", exRu: "В ноябре темнеет рано.", exNo: "I november blir det mørkt tidlig." },
+            { ru: "Декабрь", translit: "Dekabr'", no: "Desember", exRu: "Декабрь — последний месяц.", exNo: "Desember er den siste måneden." }
+        ],
+        "Kropp": [
+            { ru: "Голова", translit: "Golova", no: "Hode", exRu: "У меня болит голова.", exNo: "Jeg har hodepine." },
+            { ru: "Рука", translit: "Ruka", no: "Hånd/arm", exRu: "Дай мне руку.", exNo: "Gi meg hånden din." },
+            { ru: "Нога", translit: "Noga", no: "Fot/bein", exRu: "Я сломал ногу.", exNo: "Jeg brakk beinet." },
+            { ru: "Глаз", translit: "Glaz", no: "Øye", exRu: "У неё голубые глаза.", exNo: "Hun har blå øyne." },
+            { ru: "Ухо", translit: "Ukho", no: "Øre", exRu: "У меня болит ухо.", exNo: "Jeg har vondt i øret." },
+            { ru: "Сердце", translit: "Serdtse", no: "Hjerte", exRu: "Сердце бьётся быстро.", exNo: "Hjertet slår raskt." },
+            { ru: "Спина", translit: "Spina", no: "Rygg", exRu: "У меня болит спина.", exNo: "Jeg har vondt i ryggen." }
+        ],
+        "Klær": [
+            { ru: "Рубашка", translit: "Rubasjka", no: "Skjorte", exRu: "Белая рубашка.", exNo: "Hvit skjorte." },
+            { ru: "Брюки", translit: "Brjuki", no: "Bukser", exRu: "Чёрные брюки.", exNo: "Svarte bukser." },
+            { ru: "Куртка", translit: "Kurtka", no: "Jakke", exRu: "Тёплая куртка.", exNo: "Varm jakke." },
+            { ru: "Обувь", translit: "Obuv'", no: "Sko", exRu: "Новая обувь.", exNo: "Nye sko." },
+            { ru: "Шапка", translit: "Sjapka", no: "Lue", exRu: "Надень шапку!", exNo: "Ta på deg lua!" },
+            { ru: "Платье", translit: "Plat'je", no: "Kjole", exRu: "Красивое платье.", exNo: "Pen kjole." },
+            { ru: "Пальто", translit: "Pal'to", no: "Frakk", exRu: "Зимнее пальто.", exNo: "Vinterfrakk." }
+        ],
+        "Yrker": [
+            { ru: "Врач", translit: "Vratsj", no: "Lege", exRu: "Мой врач очень хороший.", exNo: "Legen min er veldig flink." },
+            { ru: "Учитель", translit: "Utsjitel'", no: "Lærer", exRu: "Учитель объясняет урок.", exNo: "Læreren forklarer leksjonen." },
+            { ru: "Инженер", translit: "Inzjener", no: "Ingeniør", exRu: "Он работает инженером.", exNo: "Han jobber som ingeniør." },
+            { ru: "Повар", translit: "Povar", no: "Kokk", exRu: "Повар готовит обед.", exNo: "Kokken lager middag." },
+            { ru: "Водитель", translit: "Voditel'", no: "Sjåfør", exRu: "Водитель автобуса.", exNo: "Bussjåfør." },
+            { ru: "Продавец", translit: "Prodavets", no: "Selger", exRu: "Продавец в магазине.", exNo: "Selger i butikken." },
+            { ru: "Программист", translit: "Programmist", no: "Programmerer", exRu: "Я — программист.", exNo: "Jeg er programmerer." }
+        ],
+        "I huset": [
+            { ru: "Кухня", translit: "Kukhnja", no: "Kjøkken", exRu: "Мама на кухне.", exNo: "Mamma er på kjøkkenet." },
+            { ru: "Комната", translit: "Komnata", no: "Rom", exRu: "Моя комната большая.", exNo: "Rommet mitt er stort." },
+            { ru: "Окно", translit: "Okno", no: "Vindu", exRu: "Открой окно.", exNo: "Åpne vinduet." },
+            { ru: "Дверь", translit: "Dver'", no: "Dør", exRu: "Закрой дверь.", exNo: "Lukk døren." },
+            { ru: "Стол", translit: "Stol", no: "Bord", exRu: "Книга на столе.", exNo: "Boken er på bordet." },
+            { ru: "Стул", translit: "Stul", no: "Stol", exRu: "Сядь на стул.", exNo: "Sett deg på stolen." },
+            { ru: "Кровать", translit: "Krovat'", no: "Seng", exRu: "Удобная кровать.", exNo: "Komfortabel seng." }
+        ]
+    },
+    3: {
+        "Følelser": [
+            { ru: "Счастье", translit: "Stsjast'je", no: "Lykke", exRu: "Счастье — это здоровье.", exNo: "Lykke er helse." },
+            { ru: "Грусть", translit: "Grust'", no: "Tristhet", exRu: "Грусть прошла.", exNo: "Tristheten gikk over." },
+            { ru: "Страх", translit: "Strakh", no: "Frykt", exRu: "Страх темноты.", exNo: "Frykt for mørket." },
+            { ru: "Гнев", translit: "Gnev", no: "Sinne", exRu: "Гнев — плохой советчик.", exNo: "Sinne er en dårlig rådgiver." },
+            { ru: "Надежда", translit: "Nadezjda", no: "Håp", exRu: "Надежда умирает последней.", exNo: "Håpet dør sist." },
+            { ru: "Удивление", translit: "Udivlenije", no: "Overraskelse", exRu: "Какое удивление!", exNo: "For en overraskelse!" },
+            { ru: "Гордость", translit: "Gordost'", no: "Stolthet", exRu: "Я чувствую гордость.", exNo: "Jeg føler stolthet." },
+            { ru: "Скука", translit: "Skuka", no: "Kjedsomhet", exRu: "Скука — враг творчества.", exNo: "Kjedsomhet er kreativitetens fiende." }
+        ],
+        "Natur og vær": [
+            { ru: "Погода", translit: "Pogoda", no: "Vær", exRu: "Какая сегодня погода?", exNo: "Hvordan er været i dag?" },
+            { ru: "Дождь", translit: "Dozjd'", no: "Regn", exRu: "Идёт дождь.", exNo: "Det regner." },
+            { ru: "Снег", translit: "Sneg", no: "Snø", exRu: "Выпал первый снег.", exNo: "Den første snøen falt." },
+            { ru: "Ветер", translit: "Veter", no: "Vind", exRu: "Сильный ветер.", exNo: "Sterk vind." },
+            { ru: "Облако", translit: "Oblako", no: "Sky", exRu: "На небе облака.", exNo: "Det er skyer på himmelen." },
+            { ru: "Гроза", translit: "Groza", no: "Tordenvær", exRu: "Надвигается гроза.", exNo: "Det nærmer seg tordenvær." },
+            { ru: "Лес", translit: "Les", no: "Skog", exRu: "Густой лес.", exNo: "Tett skog." },
+            { ru: "Река", translit: "Reka", no: "Elv", exRu: "Широкая река.", exNo: "Bred elv." },
+            { ru: "Море", translit: "More", no: "Hav", exRu: "Чёрное море.", exNo: "Svartehavet." }
+        ],
+        "Abstrakte begreper": [
+            { ru: "Свобода", translit: "Svoboda", no: "Frihet", exRu: "Свобода слова.", exNo: "Ytringsfrihet." },
+            { ru: "Справедливость", translit: "Spravedlivost'", no: "Rettferdighet", exRu: "Борьба за справедливость.", exNo: "Kampen for rettferdighet." },
+            { ru: "Знание", translit: "Znanije", no: "Kunnskap", exRu: "Знание — сила.", exNo: "Kunnskap er makt." },
+            { ru: "Опыт", translit: "Opyt", no: "Erfaring", exRu: "Опыт приходит с годами.", exNo: "Erfaring kommer med årene." },
+            { ru: "Решение", translit: "Resjenije", no: "Avgjørelse", exRu: "Трудное решение.", exNo: "Vanskelig avgjørelse." },
+            { ru: "Возможность", translit: "Vozmozjnost'", no: "Mulighet", exRu: "Уникальная возможность.", exNo: "En unik mulighet." },
+            { ru: "Ответственность", translit: "Otvetstvennost'", no: "Ansvar", exRu: "Большая ответственность.", exNo: "Stort ansvar." }
+        ],
+        "Arbeidsliv": [
+            { ru: "Зарплата", translit: "Zarplata", no: "Lønn", exRu: "Хорошая зарплата.", exNo: "God lønn." },
+            { ru: "Совещание", translit: "Sovesjtjanije", no: "Møte", exRu: "У нас совещание в три.", exNo: "Vi har møte klokka tre." },
+            { ru: "Начальник", translit: "Natsjal'nik", no: "Sjef", exRu: "Начальник одобрил проект.", exNo: "Sjefen godkjente prosjektet." },
+            { ru: "Договор", translit: "Dogovor", no: "Kontrakt", exRu: "Подписать договор.", exNo: "Signere kontrakten." },
+            { ru: "Отпуск", translit: "Otpusk", no: "Ferie", exRu: "Я в отпуске.", exNo: "Jeg er på ferie." },
+            { ru: "Коллега", translit: "Kollega", no: "Kollega", exRu: "Мой коллега помог мне.", exNo: "Kollegaen min hjalp meg." },
+            { ru: "Увольнение", translit: "Uvol'nenije", no: "Oppsigelse", exRu: "Увольнение по собственному желанию.", exNo: "Oppsigelse etter eget ønske." }
+        ],
+        "Russiske uttrykk": [
+            { ru: "Ни пуха ни пера", translit: "Ni pukha ni pera", no: "Lykke til (idiom)", exRu: "Завтра экзамен — ни пуха ни пера!", exNo: "Eksamen i morgen — lykke til!" },
+            { ru: "Как рукой сняло", translit: "Kak rukoj snjalo", no: "Borte med en gang", exRu: "Боль — как рукой сняло.", exNo: "Smerten forsvant med en gang." },
+            { ru: "Белая ворона", translit: "Belaja vorona", no: "Sort får (en som skiller seg ut)", exRu: "Он — белая ворона в семье.", exNo: "Han er det sorte fåret i familien." },
+            { ru: "Бить баклуши", translit: "Bit' baklusji", no: "Slå i hjel tiden / dovne seg", exRu: "Хватит бить баклуши!", exNo: "Slutt å dovne deg!" },
+            { ru: "Вешать лапшу на уши", translit: "Veshat' lapsju na usji", no: "Lure noen / lyve", exRu: "Не вешай мне лапшу на уши!", exNo: "Ikke prøv å lure meg!" },
+            { ru: "Душа в душу", translit: "Dusja v dusju", no: "I perfekt harmoni", exRu: "Они живут душа в душу.", exNo: "De lever i perfekt harmoni." }
+        ]
+    }
+};
 
-    // ===== PHRASES DATA =====
-    const phrasesData = {
+// ===== PHRASES DATA (by level) =====
+const phrasesByLevel = {
+    1: {
         "Grunnleggende": [
             { ru: "Да", translit: "Da", no: "Ja" },
             { ru: "Нет", translit: "Net", no: "Nei" },
@@ -390,407 +666,377 @@
             { ru: "Большое спасибо", translit: "Bol'sjoje spasibo", no: "Tusen takk" },
             { ru: "Пожалуйста", translit: "Pazjalusta", no: "Vær så snill / ingen årsak" },
             { ru: "Извините", translit: "Izvinite", no: "Unnskyld" },
-            { ru: "Простите", translit: "Prostite", no: "Beklager" },
             { ru: "Хорошо", translit: "Khorosjo", no: "Bra / OK" },
-            { ru: "Конечно", translit: "Konesjno", no: "Selvfølgelig" },
             { ru: "Понятно", translit: "Ponjatno", no: "Forstått / Skjønner" }
         ],
         "Presentasjon": [
             { ru: "Меня зовут...", translit: "Menja zovut...", no: "Jeg heter..." },
             { ru: "Как вас зовут?", translit: "Kak vas zovut?", no: "Hva heter du? (formelt)" },
-            { ru: "Как тебя зовут?", translit: "Kak tebja zovut?", no: "Hva heter du? (uformelt)" },
             { ru: "Очень приятно", translit: "Otsjen' prijatno", no: "Hyggelig å møte deg" },
-            { ru: "Откуда вы?", translit: "Otkuda vy?", no: "Hvor er du fra? (formelt)" },
             { ru: "Я из Норвегии", translit: "Ja iz Norvegii", no: "Jeg er fra Norge" },
-            { ru: "Я говорю по-норвежски", translit: "Ja govorju po-norvesjski", no: "Jeg snakker norsk" },
             { ru: "Я учу русский", translit: "Ja utsju russkij", no: "Jeg lærer russisk" }
         ],
         "Dagligtale": [
             { ru: "Как дела?", translit: "Kak dela?", no: "Hvordan går det?" },
             { ru: "Хорошо, спасибо", translit: "Khorosjo, spasibo", no: "Bra, takk" },
             { ru: "Что это?", translit: "Sjto eto?", no: "Hva er dette?" },
-            { ru: "Где находится...?", translit: "Gde nakhoditsja...?", no: "Hvor er...?" },
-            { ru: "Сколько стоит?", translit: "Skol'ko stoit?", no: "Hvor mye koster det?" },
             { ru: "Я не понимаю", translit: "Ja ne ponimaju", no: "Jeg forstår ikke" },
-            { ru: "Повторите, пожалуйста", translit: "Povtorite, pazjalusta", no: "Kan du gjenta, vær så snill" },
             { ru: "Говорите медленнее", translit: "Govorite medlennee", no: "Snakk langsommere" },
-            { ru: "Мне нужна помощь", translit: "Mne nuzhna pomosjtj", no: "Jeg trenger hjelp" },
             { ru: "Который час?", translit: "Kotoryj tsjas?", no: "Hva er klokka?" }
+        ]
+    },
+    2: {
+        "På restaurant": [
+            { ru: "Меню, пожалуйста", translit: "Menju, pazjalusta", no: "Menyen, takk" },
+            { ru: "Я хочу заказать...", translit: "Ja khotsju zakazat'...", no: "Jeg vil bestille..." },
+            { ru: "Счёт, пожалуйста", translit: "Sjtsjot, pazjalusta", no: "Regningen, takk" },
+            { ru: "Очень вкусно!", translit: "Otsjen' vkusno!", no: "Veldig godt!" },
+            { ru: "Что вы рекомендуете?", translit: "Sjto vy rekomendujete?", no: "Hva anbefaler du?" },
+            { ru: "У меня аллергия на...", translit: "U menja allergija na...", no: "Jeg er allergisk mot..." }
+        ],
+        "Veibeskrivelse": [
+            { ru: "Как пройти к...?", translit: "Kak projti k...?", no: "Hvordan kommer jeg til...?" },
+            { ru: "Идите прямо", translit: "Idite prjamo", no: "Gå rett frem" },
+            { ru: "Поверните налево", translit: "Povernite nalevo", no: "Sving til venstre" },
+            { ru: "Поверните направо", translit: "Povernite napravo", no: "Sving til høyre" },
+            { ru: "Это далеко?", translit: "Eto daleko?", no: "Er det langt?" },
+            { ru: "Рядом с...", translit: "Rjadom s...", no: "Ved siden av..." },
+            { ru: "Напротив", translit: "Naprotiv", no: "Overfor" }
+        ],
+        "Shopping": [
+            { ru: "Сколько стоит?", translit: "Skol'ko stoit?", no: "Hvor mye koster det?" },
+            { ru: "Можно примерить?", translit: "Mozhno primerit'?", no: "Kan jeg prøve den?" },
+            { ru: "Есть скидки?", translit: "Jest' skidki?", no: "Er det rabatter?" },
+            { ru: "Где примерочная?", translit: "Gde primerotsjnaja?", no: "Hvor er prøverommet?" },
+            { ru: "Мне нужен размер...", translit: "Mne nuzjen razmer...", no: "Jeg trenger størrelse..." },
+            { ru: "Я просто смотрю", translit: "Ja prosto smotrju", no: "Jeg bare ser" },
+            { ru: "Можно оплатить картой?", translit: "Mozhno oplatit' kartoj?", no: "Kan jeg betale med kort?" }
         ],
         "Reise": [
             { ru: "Где туалет?", translit: "Gde tualet?", no: "Hvor er toalettet?" },
             { ru: "Аэропорт", translit: "Aeroport", no: "Flyplass" },
             { ru: "Вокзал", translit: "Vokzal", no: "Togstasjon" },
             { ru: "Гостиница", translit: "Gostinitsa", no: "Hotell" },
-            { ru: "Ресторан", translit: "Restoran", no: "Restaurant" },
             { ru: "Билет", translit: "Bilet", no: "Billett" },
-            { ru: "Поезд", translit: "Poezd", no: "Tog" },
-            { ru: "Самолёт", translit: "Samoljot", no: "Fly" },
-            { ru: "Такси", translit: "Taksi", no: "Taxi" },
-            { ru: "Можно счёт?", translit: "Mozhno sjtsjot?", no: "Kan jeg få regningen?" }
+            { ru: "Когда следующий рейс?", translit: "Kogda sledujusjtsjij rejs?", no: "Når går neste avgang?" },
+            { ru: "Мне нужна виза", translit: "Mne nuzhna viza", no: "Jeg trenger visum" }
         ]
-    };
-
-    // ===== SECTION NAVIGATION =====
-    function showSection(name) {
-        document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-        document.getElementById('section-' + name).classList.remove('hidden');
-        document.getElementById('section-' + name).classList.add('fade-in');
-
-        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active'));
-        const activeTab = document.querySelector(`[data-tab="${name}"]`);
-        if (activeTab) activeTab.classList.add('tab-active');
-
-        if (name === 'alphabet') renderAlphabet();
-        if (name === 'vocabulary') initVocab();
-        if (name === 'phrases') initPhrases();
-        if (name === 'quiz') resetQuiz();
+    },
+    3: {
+        "Meninger og debatt": [
+            { ru: "Я считаю, что...", translit: "Ja sjtjitaju, sjto...", no: "Jeg mener at..." },
+            { ru: "С одной стороны...", translit: "S odnoj storony...", no: "På den ene siden..." },
+            { ru: "С другой стороны...", translit: "S drugoj storony...", no: "På den andre siden..." },
+            { ru: "Я согласен/согласна", translit: "Ja soglasen/soglasna", no: "Jeg er enig" },
+            { ru: "Я не согласен", translit: "Ja ne soglasen", no: "Jeg er uenig" },
+            { ru: "По-моему...", translit: "Po-mojemu...", no: "Etter min mening..." },
+            { ru: "Дело в том, что...", translit: "Delo v tom, sjto...", no: "Saken er at..." },
+            { ru: "Это зависит от...", translit: "Eto zavisit ot...", no: "Det kommer an på..." }
+        ],
+        "Formelle situasjoner": [
+            { ru: "Разрешите представиться", translit: "Razresjite predstavit'sja", no: "Tillat meg å presentere meg" },
+            { ru: "Будьте добры...", translit: "Bud'te dobry...", no: "Vær så vennlig å..." },
+            { ru: "Не могли бы вы...?", translit: "Ne mogli by vy...?", no: "Kunne du vært så snill å...?" },
+            { ru: "Я хотел бы обсудить...", translit: "Ja khotel by obsudit'...", no: "Jeg vil gjerne diskutere..." },
+            { ru: "Примите мои извинения", translit: "Primite moi izvinenija", no: "Vennligst godta mine unnskyldninger" },
+            { ru: "Благодарю вас", translit: "Blagodarju vas", no: "Jeg takker Dem" }
+        ],
+        "Ordtak": [
+            { ru: "Терпение и труд всё перетрут", translit: "Terpenije i trud vsjo peretrut", no: "Tålmodighet og arbeid overvinner alt" },
+            { ru: "Без труда не вытащишь и рыбку из пруда", translit: "Bez truda ne vytasjtsjisj i rybku iz pruda", no: "Uten arbeid får du ingen fisk fra dammen" },
+            { ru: "Лучше поздно, чем никогда", translit: "Lutsje pozdno, tsjem nikogda", no: "Bedre sent enn aldri" },
+            { ru: "Утро вечера мудренее", translit: "Utro vetsjera mudreneje", no: "Morgenen er klokere enn kvelden" },
+            { ru: "Семь раз отмерь, один раз отрежь", translit: "Sem' raz otmer', odin raz otrezj'", no: "Mål sju ganger, kutt én gang" },
+            { ru: "Друзья познаются в беде", translit: "Druzja poznajutsja v bede", no: "Venner kjennes i nøden" }
+        ],
+        "Avansert samtale": [
+            { ru: "Какие у вас планы на будущее?", translit: "Kakije u vas plany na budusjtsjeje?", no: "Hva er planene dine for fremtiden?" },
+            { ru: "Чем вы увлекаетесь?", translit: "Tsjem vy uvlekajetes'?", no: "Hva er hobbyene dine?" },
+            { ru: "Расскажите о себе", translit: "Rasskazhite o sebe", no: "Fortell om deg selv" },
+            { ru: "Мне кажется, это отличная идея", translit: "Mne kazjetsja, eto otlitsjnaja ideja", no: "Jeg synes det er en utmerket idé" },
+            { ru: "Давайте обсудим это подробнее", translit: "Davajte obsudin eto podrobneje", no: "La oss diskutere dette nærmere" },
+            { ru: "Я бы хотел узнать ваше мнение", translit: "Ja by khotel uznat' vasje mnenije", no: "Jeg vil gjerne høre din mening" }
+        ]
     }
+};
 
-    // ===== ALPHABET =====
-    let currentFilter = 'all';
+// ===== SECTION NAVIGATION =====
+function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+    document.getElementById('section-' + name).classList.remove('hidden');
+    document.getElementById('section-' + name).classList.add('fade-in');
+    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active'));
+    const activeTab = document.querySelector(`[data-tab="${name}"]`);
+    if (activeTab) activeTab.classList.add('tab-active');
+    if (name === 'alphabet') renderAlphabet();
+    if (name === 'vocabulary') { renderLevelSelector('vocab'); initVocab(); }
+    if (name === 'phrases') { renderLevelSelector('phrases'); initPhrases(); }
+    if (name === 'quiz') { renderLevelSelector('quiz'); resetQuiz(); }
+    if (name === 'home') updateAllUI();
+}
 
-    function filterAlphabet(type) {
-        currentFilter = type;
-        document.querySelectorAll('.alpha-filter').forEach(b => {
-            b.classList.remove('bg-red-600', 'text-white');
-            b.classList.add('text-stone-600');
-        });
-        event.target.classList.add('bg-red-600', 'text-white');
-        event.target.classList.remove('text-stone-600');
-        renderAlphabet();
-    }
+// ===== ALPHABET =====
+let currentFilter = 'all';
 
-    function renderAlphabet() {
-        const grid = document.getElementById('alphabet-grid');
-        grid.innerHTML = '';
-        const filtered = currentFilter === 'all' ? alphabet : alphabet.filter(l => l.type === currentFilter);
-
-        filtered.forEach((item, i) => {
-            const div = document.createElement('button');
-            const typeColors = {
-                vowel: 'border-red-200 hover:border-red-400 bg-red-50',
-                consonant: 'border-blue-200 hover:border-blue-400 bg-blue-50',
-                sign: 'border-stone-300 hover:border-stone-400 bg-stone-100'
-            };
-            div.className = `rounded-xl border-2 p-4 text-center transition-all cursor-pointer ${typeColors[item.type]}`;
-            div.innerHTML = `
-                <div class="text-2xl font-bold russian-letter">${item.letter}</div>
-                <div class="text-xs text-stone-500 mt-1">${item.name}</div>
-            `;
-            div.onclick = () => showLetterDetail(item);
-            grid.appendChild(div);
-        });
-    }
-
-    function showLetterDetail(item) {
-        const detail = document.getElementById('letter-detail');
-        detail.classList.remove('hidden');
-        document.getElementById('detail-letter').textContent = item.letter;
-        document.getElementById('detail-name').textContent = item.name;
-        const typeLabels = { vowel: 'Vokal', consonant: 'Konsonant', sign: 'Tegn' };
-        document.getElementById('detail-type').textContent = typeLabels[item.type];
-        document.getElementById('detail-pronunciation').textContent = item.pronunciation;
-        document.getElementById('detail-example').textContent = item.example;
-        detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    // ===== VOCABULARY (FLASHCARDS) =====
-    let currentCategory = '';
-    let currentCards = [];
-    let currentCardIndex = 0;
-
-    function initVocab() {
-        const container = document.getElementById('vocab-categories');
-        container.innerHTML = '';
-        const categories = Object.keys(vocabData);
-        if (!currentCategory || !vocabData[currentCategory]) currentCategory = categories[0];
-
-        categories.forEach(cat => {
-            const btn = document.createElement('button');
-            btn.className = `category-btn px-4 py-1.5 rounded-full text-sm border border-stone-300 transition-colors ${cat === currentCategory ? 'active' : 'text-stone-600 hover:bg-red-50'}`;
-            btn.textContent = cat;
-            btn.onclick = () => {
-                currentCategory = cat;
-                currentCardIndex = 0;
-                initVocab();
-            };
-            container.appendChild(btn);
-        });
-
-        currentCards = [...vocabData[currentCategory]];
-        loadCard();
-    }
-
-    function loadCard() {
-        const card = currentCards[currentCardIndex];
-        document.getElementById('card-russian').textContent = card.ru;
-        document.getElementById('card-transliteration').textContent = card.translit;
-        document.getElementById('card-norwegian').textContent = card.no;
-        document.getElementById('card-example-ru').textContent = card.exRu;
-        document.getElementById('card-example-no').textContent = card.exNo;
-        document.getElementById('card-counter').textContent = `${currentCardIndex + 1} / ${currentCards.length}`;
-
-        const inner = document.getElementById('flashcard');
-        inner.classList.remove('flipped');
-    }
-
-    function flipCard() {
-        document.getElementById('flashcard').classList.toggle('flipped');
-    }
-
-    function nextCard() {
-        currentCardIndex = (currentCardIndex + 1) % currentCards.length;
-        loadCard();
-    }
-
-    function prevCard() {
-        currentCardIndex = (currentCardIndex - 1 + currentCards.length) % currentCards.length;
-        loadCard();
-    }
-
-    function shuffleCards() {
-        for (let i = currentCards.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [currentCards[i], currentCards[j]] = [currentCards[j], currentCards[i]];
-        }
-        currentCardIndex = 0;
-        loadCard();
-    }
-
-    // ===== PHRASES =====
-    let currentPhraseCategory = '';
-
-    function initPhrases() {
-        const container = document.getElementById('phrase-categories');
-        container.innerHTML = '';
-        const categories = Object.keys(phrasesData);
-        if (!currentPhraseCategory || !phrasesData[currentPhraseCategory]) currentPhraseCategory = categories[0];
-
-        categories.forEach(cat => {
-            const btn = document.createElement('button');
-            btn.className = `category-btn px-4 py-1.5 rounded-full text-sm border border-stone-300 transition-colors ${cat === currentPhraseCategory ? 'active' : 'text-stone-600 hover:bg-red-50'}`;
-            btn.textContent = cat;
-            btn.onclick = () => {
-                currentPhraseCategory = cat;
-                initPhrases();
-            };
-            container.appendChild(btn);
-        });
-
-        renderPhrases();
-    }
-
-    function renderPhrases() {
-        const list = document.getElementById('phrases-list');
-        list.innerHTML = '';
-        phrasesData[currentPhraseCategory].forEach(phrase => {
-            const div = document.createElement('div');
-            div.className = 'bg-white rounded-xl border border-stone-200 p-4 hover:shadow-md transition-shadow cursor-pointer';
-            div.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="text-xl font-semibold text-red-600 russian-letter">${phrase.ru}</div>
-                        <div class="text-sm text-stone-400 italic mt-1">${phrase.translit}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-lg text-stone-700">${phrase.no}</div>
-                    </div>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    }
-
-    // ===== QUIZ =====
-    let quizQuestions = [];
-    let quizIndex = 0;
-    let quizScore = 0;
-    let quizAnswered = false;
-    const QUIZ_LENGTH = 10;
-
-    function resetQuiz() {
-        document.getElementById('quiz-start').classList.remove('hidden');
-        document.getElementById('quiz-active').classList.add('hidden');
-        document.getElementById('quiz-result').classList.add('hidden');
-    }
-
-    function generateAlphabetQuiz() {
-        const questions = [];
-        const shuffled = [...alphabet].sort(() => Math.random() - 0.5);
-
-        for (let i = 0; i < Math.min(QUIZ_LENGTH, shuffled.length); i++) {
-            const correct = shuffled[i];
-            const others = alphabet.filter(a => a.name !== correct.name).sort(() => Math.random() - 0.5).slice(0, 3);
-            const options = [
-                { text: correct.pronunciation, correct: true },
-                ...others.map(o => ({ text: o.pronunciation, correct: false }))
-            ].sort(() => Math.random() - 0.5);
-
-            questions.push({
-                question: `Hvordan uttales «${correct.letter.split(' ')[0]}» (${correct.name})?`,
-                options
-            });
-        }
-        return questions;
-    }
-
-    function generateVocabQuiz() {
-        const allWords = Object.values(vocabData).flat();
-        const shuffled = allWords.sort(() => Math.random() - 0.5);
-        const questions = [];
-
-        for (let i = 0; i < Math.min(QUIZ_LENGTH, shuffled.length); i++) {
-            const correct = shuffled[i];
-            const others = allWords.filter(w => w.no !== correct.no).sort(() => Math.random() - 0.5).slice(0, 3);
-            const options = [
-                { text: correct.no, correct: true },
-                ...others.map(o => ({ text: o.no, correct: false }))
-            ].sort(() => Math.random() - 0.5);
-
-            questions.push({
-                question: `Hva betyr «${correct.ru}» (${correct.translit})?`,
-                options
-            });
-        }
-        return questions;
-    }
-
-    function generatePhraseQuiz() {
-        const allPhrases = Object.values(phrasesData).flat();
-        const shuffled = allPhrases.sort(() => Math.random() - 0.5);
-        const questions = [];
-
-        for (let i = 0; i < Math.min(QUIZ_LENGTH, shuffled.length); i++) {
-            const correct = shuffled[i];
-            const others = allPhrases.filter(p => p.no !== correct.no).sort(() => Math.random() - 0.5).slice(0, 3);
-            const options = [
-                { text: correct.no, correct: true },
-                ...others.map(o => ({ text: o.no, correct: false }))
-            ].sort(() => Math.random() - 0.5);
-
-            questions.push({
-                question: `Hva betyr «${correct.ru}»?`,
-                options
-            });
-        }
-        return questions;
-    }
-
-    function startQuiz(type) {
-        if (type === 'alphabet') quizQuestions = generateAlphabetQuiz();
-        else if (type === 'vocab') quizQuestions = generateVocabQuiz();
-        else quizQuestions = generatePhraseQuiz();
-
-        quizIndex = 0;
-        quizScore = 0;
-        quizAnswered = false;
-
-        document.getElementById('quiz-start').classList.add('hidden');
-        document.getElementById('quiz-active').classList.remove('hidden');
-        document.getElementById('quiz-result').classList.add('hidden');
-
-        loadQuizQuestion();
-    }
-
-    function loadQuizQuestion() {
-        quizAnswered = false;
-        const q = quizQuestions[quizIndex];
-
-        document.getElementById('quiz-question').textContent = q.question;
-        document.getElementById('quiz-counter').textContent = `Spørsmål ${quizIndex + 1} av ${quizQuestions.length}`;
-        document.getElementById('quiz-score').textContent = `Poeng: ${quizScore}`;
-        document.getElementById('quiz-progress').style.width = `${(quizIndex / quizQuestions.length) * 100}%`;
-
-        document.getElementById('quiz-feedback').classList.add('hidden');
-        document.getElementById('quiz-next-btn').classList.add('hidden');
-
-        const container = document.getElementById('quiz-options');
-        container.innerHTML = '';
-
-        q.options.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = 'w-full text-left p-4 rounded-xl border-2 border-stone-200 hover:border-red-400 hover:bg-red-50 transition-all duration-200 flex items-center justify-between group';
-            btn.innerHTML = `
-                <span class="font-medium text-stone-700">${opt.text}</span>
-                <i class="far fa-circle text-stone-400 group-hover:text-red-500"></i>
-            `;
-            btn.onclick = () => handleQuizAnswer(idx, btn);
-            container.appendChild(btn);
-        });
-
-        if (quizIndex === quizQuestions.length - 1) {
-            document.getElementById('quiz-next-btn').textContent = 'Se resultat';
-        } else {
-            document.getElementById('quiz-next-btn').textContent = 'Neste';
-        }
-    }
-
-    function handleQuizAnswer(idx, selectedBtn) {
-        if (quizAnswered) return;
-        quizAnswered = true;
-
-        const q = quizQuestions[quizIndex];
-        const isCorrect = q.options[idx].correct;
-        const correctAnswer = q.options.find(o => o.correct).text;
-
-        const buttons = document.getElementById('quiz-options').getElementsByTagName('button');
-        Array.from(buttons).forEach((btn, i) => {
-            btn.disabled = true;
-            btn.classList.remove('hover:bg-red-50', 'hover:border-red-400');
-            if (q.options[i].correct) {
-                btn.classList.add('bg-green-50', 'border-green-500');
-                btn.querySelector('i').className = 'fas fa-check-circle text-green-500 text-xl';
-            } else if (i === idx && !isCorrect) {
-                btn.classList.add('bg-red-50', 'border-red-500');
-                btn.querySelector('i').className = 'fas fa-times-circle text-red-500 text-xl';
-            }
-        });
-
-        if (isCorrect) {
-            quizScore++;
-            document.getElementById('quiz-score').textContent = `Poeng: ${quizScore}`;
-        }
-
-        const feedback = document.getElementById('quiz-feedback');
-        feedback.classList.remove('hidden', 'bg-green-50', 'border-green-500', 'bg-red-50', 'border-red-500');
-        feedback.classList.add(isCorrect ? 'bg-green-50' : 'bg-red-50');
-        feedback.classList.add(isCorrect ? 'border-green-500' : 'border-red-500');
-        feedback.innerHTML = isCorrect
-            ? '<span class="font-bold text-green-800">Riktig!</span> <span class="text-stone-600">Godt jobbet.</span>'
-            : `<span class="font-bold text-red-800">Feil.</span> <span class="text-stone-600">Riktig svar: <strong>${correctAnswer}</strong></span>`;
-
-        document.getElementById('quiz-next-btn').classList.remove('hidden');
-    }
-
-    function quizNext() {
-        quizIndex++;
-        if (quizIndex >= quizQuestions.length) {
-            showQuizResults();
-        } else {
-            loadQuizQuestion();
-        }
-    }
-
-    function showQuizResults() {
-        document.getElementById('quiz-active').classList.add('hidden');
-        document.getElementById('quiz-result').classList.remove('hidden');
-
-        const pct = Math.round((quizScore / quizQuestions.length) * 100);
-        document.getElementById('quiz-final-score').textContent = `${quizScore} / ${quizQuestions.length}`;
-        document.getElementById('quiz-final-pct').textContent = `${pct}%`;
-
-        let msg = '';
-        if (pct === 100) msg = 'Perfekt! Du er en ekte russisk-ekspert!';
-        else if (pct >= 80) msg = 'Veldig bra! Du har lært mye.';
-        else if (pct >= 60) msg = 'Bra jobbet! Fortsett å øve.';
-        else msg = 'Ikke gi opp! Prøv flashkortene og kom tilbake.';
-
-        document.getElementById('quiz-result-msg').textContent = msg;
-    }
-
-    // Init
+function filterAlphabet(type) {
+    currentFilter = type;
+    document.querySelectorAll('.alpha-filter').forEach(b => {
+        b.classList.remove('bg-red-600', 'text-white');
+        b.classList.add('text-stone-600');
+    });
+    event.target.classList.add('bg-red-600', 'text-white');
+    event.target.classList.remove('text-stone-600');
     renderAlphabet();
-    </script>
+}
+
+function renderAlphabet() {
+    const grid = document.getElementById('alphabet-grid');
+    grid.innerHTML = '';
+    const filtered = currentFilter === 'all' ? alphabet : alphabet.filter(l => l.type === currentFilter);
+    filtered.forEach(item => {
+        const div = document.createElement('button');
+        const typeColors = { vowel: 'border-red-200 hover:border-red-400 bg-red-50', consonant: 'border-blue-200 hover:border-blue-400 bg-blue-50', sign: 'border-stone-300 hover:border-stone-400 bg-stone-100' };
+        div.className = `rounded-xl border-2 p-4 text-center transition-all cursor-pointer ${typeColors[item.type]}`;
+        div.innerHTML = `<div class="text-2xl font-bold russian-letter">${item.letter}</div><div class="text-xs text-stone-500 mt-1">${item.name}</div>`;
+        div.onclick = () => showLetterDetail(item);
+        grid.appendChild(div);
+    });
+}
+
+function showLetterDetail(item) {
+    const detail = document.getElementById('letter-detail');
+    detail.classList.remove('hidden');
+    document.getElementById('detail-letter').textContent = item.letter;
+    document.getElementById('detail-name').textContent = item.name;
+    document.getElementById('detail-type').textContent = { vowel: 'Vokal', consonant: 'Konsonant', sign: 'Tegn' }[item.type];
+    document.getElementById('detail-pronunciation').textContent = item.pronunciation;
+    document.getElementById('detail-example').textContent = item.example;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ===== VOCABULARY (FLASHCARDS) =====
+let currentCategory = '';
+let currentCards = [];
+let currentCardIndex = 0;
+
+function initVocab() {
+    const vocabData = vocabByLevel[selectedLevel] || vocabByLevel[1];
+    const container = document.getElementById('vocab-categories');
+    container.innerHTML = '';
+    const categories = Object.keys(vocabData);
+    if (!currentCategory || !vocabData[currentCategory]) currentCategory = categories[0];
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `category-btn px-4 py-1.5 rounded-full text-sm border border-stone-300 transition-colors ${cat === currentCategory ? 'active' : 'text-stone-600 hover:bg-red-50'}`;
+        btn.textContent = cat;
+        btn.onclick = () => { currentCategory = cat; currentCardIndex = 0; initVocab(); };
+        container.appendChild(btn);
+    });
+    currentCards = [...vocabData[currentCategory]];
+    loadCard();
+}
+
+function loadCard() {
+    const card = currentCards[currentCardIndex];
+    document.getElementById('card-russian').textContent = card.ru;
+    document.getElementById('card-transliteration').textContent = card.translit;
+    document.getElementById('card-norwegian').textContent = card.no;
+    document.getElementById('card-example-ru').textContent = card.exRu;
+    document.getElementById('card-example-no').textContent = card.exNo;
+    document.getElementById('card-counter').textContent = `${currentCardIndex + 1} / ${currentCards.length}`;
+    document.getElementById('flashcard').classList.remove('flipped');
+}
+
+function flipCard() { document.getElementById('flashcard').classList.toggle('flipped'); }
+function nextCard() { currentCardIndex = (currentCardIndex + 1) % currentCards.length; loadCard(); }
+function prevCard() { currentCardIndex = (currentCardIndex - 1 + currentCards.length) % currentCards.length; loadCard(); }
+function shuffleCards() {
+    for (let i = currentCards.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [currentCards[i], currentCards[j]] = [currentCards[j], currentCards[i]]; }
+    currentCardIndex = 0; loadCard();
+}
+
+// ===== PHRASES =====
+let currentPhraseCategory = '';
+
+function initPhrases() {
+    const phrasesData = phrasesByLevel[selectedLevel] || phrasesByLevel[1];
+    const container = document.getElementById('phrase-categories');
+    container.innerHTML = '';
+    const categories = Object.keys(phrasesData);
+    if (!currentPhraseCategory || !phrasesData[currentPhraseCategory]) currentPhraseCategory = categories[0];
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `category-btn px-4 py-1.5 rounded-full text-sm border border-stone-300 transition-colors ${cat === currentPhraseCategory ? 'active' : 'text-stone-600 hover:bg-red-50'}`;
+        btn.textContent = cat;
+        btn.onclick = () => { currentPhraseCategory = cat; initPhrases(); };
+        container.appendChild(btn);
+    });
+    renderPhrases(phrasesData);
+}
+
+function renderPhrases(phrasesData) {
+    const list = document.getElementById('phrases-list');
+    list.innerHTML = '';
+    phrasesData[currentPhraseCategory].forEach(phrase => {
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded-xl border border-stone-200 p-4 hover:shadow-md transition-shadow';
+        div.innerHTML = `<div class="flex justify-between items-start"><div><div class="text-xl font-semibold text-red-600 russian-letter">${phrase.ru}</div><div class="text-sm text-stone-400 italic mt-1">${phrase.translit}</div></div><div class="text-right"><div class="text-lg text-stone-700">${phrase.no}</div></div></div>`;
+        list.appendChild(div);
+    });
+}
+
+// ===== QUIZ =====
+let quizQuestions = [];
+let quizIndex = 0;
+let quizScore = 0;
+let quizAnswered = false;
+let quizStreak = 0;
+const QUIZ_LENGTH = 10;
+const XP_PER_CORRECT = [0, 5, 8, 12];
+
+function resetQuiz() {
+    document.getElementById('quiz-start').classList.remove('hidden');
+    document.getElementById('quiz-active').classList.add('hidden');
+    document.getElementById('quiz-result').classList.add('hidden');
+}
+
+function generateAlphabetQuiz() {
+    const questions = [];
+    const shuffled = [...alphabet].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(QUIZ_LENGTH, shuffled.length); i++) {
+        const correct = shuffled[i];
+        const others = alphabet.filter(a => a.name !== correct.name).sort(() => Math.random() - 0.5).slice(0, 3);
+        questions.push({ question: `Hvordan uttales «${correct.letter.split(' ')[0]}» (${correct.name})?`, options: [{ text: correct.pronunciation, correct: true }, ...others.map(o => ({ text: o.pronunciation, correct: false }))].sort(() => Math.random() - 0.5) });
+    }
+    return questions;
+}
+
+function generateVocabQuiz() {
+    const vocabData = vocabByLevel[selectedLevel] || vocabByLevel[1];
+    const allWords = Object.values(vocabData).flat();
+    const shuffled = allWords.sort(() => Math.random() - 0.5);
+    const questions = [];
+    for (let i = 0; i < Math.min(QUIZ_LENGTH, shuffled.length); i++) {
+        const correct = shuffled[i];
+        const others = allWords.filter(w => w.no !== correct.no).sort(() => Math.random() - 0.5).slice(0, 3);
+        questions.push({ question: `Hva betyr «${correct.ru}» (${correct.translit})?`, options: [{ text: correct.no, correct: true }, ...others.map(o => ({ text: o.no, correct: false }))].sort(() => Math.random() - 0.5) });
+    }
+    return questions;
+}
+
+function generatePhraseQuiz() {
+    const phrasesData = phrasesByLevel[selectedLevel] || phrasesByLevel[1];
+    const allPhrases = Object.values(phrasesData).flat();
+    const shuffled = allPhrases.sort(() => Math.random() - 0.5);
+    const questions = [];
+    for (let i = 0; i < Math.min(QUIZ_LENGTH, shuffled.length); i++) {
+        const correct = shuffled[i];
+        const others = allPhrases.filter(p => p.no !== correct.no).sort(() => Math.random() - 0.5).slice(0, 3);
+        questions.push({ question: `Hva betyr «${correct.ru}»?`, options: [{ text: correct.no, correct: true }, ...others.map(o => ({ text: o.no, correct: false }))].sort(() => Math.random() - 0.5) });
+    }
+    return questions;
+}
+
+function startQuiz(type) {
+    if (type === 'alphabet') quizQuestions = generateAlphabetQuiz();
+    else if (type === 'vocab') quizQuestions = generateVocabQuiz();
+    else quizQuestions = generatePhraseQuiz();
+    quizIndex = 0; quizScore = 0; quizAnswered = false; quizStreak = 0;
+    document.getElementById('quiz-start').classList.add('hidden');
+    document.getElementById('quiz-active').classList.remove('hidden');
+    document.getElementById('quiz-result').classList.add('hidden');
+    loadQuizQuestion();
+}
+
+function loadQuizQuestion() {
+    quizAnswered = false;
+    const q = quizQuestions[quizIndex];
+    document.getElementById('quiz-question').textContent = q.question;
+    document.getElementById('quiz-counter').textContent = `Spørsmål ${quizIndex + 1} av ${quizQuestions.length}`;
+    document.getElementById('quiz-score').textContent = `Poeng: ${quizScore}`;
+    document.getElementById('quiz-progress').style.width = `${(quizIndex / quizQuestions.length) * 100}%`;
+    document.getElementById('quiz-feedback').classList.add('hidden');
+    document.getElementById('quiz-next-btn').classList.add('hidden');
+    const container = document.getElementById('quiz-options');
+    container.innerHTML = '';
+    q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 rounded-xl border-2 border-stone-200 hover:border-red-400 hover:bg-red-50 transition-all duration-200 flex items-center justify-between group';
+        btn.innerHTML = `<span class="font-medium text-stone-700">${opt.text}</span><i class="far fa-circle text-stone-400 group-hover:text-red-500"></i>`;
+        btn.onclick = () => handleQuizAnswer(idx, btn);
+        container.appendChild(btn);
+    });
+    document.getElementById('quiz-next-btn').textContent = quizIndex === quizQuestions.length - 1 ? 'Se resultat' : 'Neste';
+}
+
+function handleQuizAnswer(idx) {
+    if (quizAnswered) return;
+    quizAnswered = true;
+    const q = quizQuestions[quizIndex];
+    const isCorrect = q.options[idx].correct;
+    const correctAnswer = q.options.find(o => o.correct).text;
+    const buttons = document.getElementById('quiz-options').getElementsByTagName('button');
+    Array.from(buttons).forEach((btn, i) => {
+        btn.disabled = true;
+        btn.classList.remove('hover:bg-red-50', 'hover:border-red-400');
+        if (q.options[i].correct) { btn.classList.add('bg-green-50', 'border-green-500'); btn.querySelector('i').className = 'fas fa-check-circle text-green-500 text-xl'; }
+        else if (i === idx && !isCorrect) { btn.classList.add('bg-red-50', 'border-red-500'); btn.querySelector('i').className = 'fas fa-times-circle text-red-500 text-xl'; }
+    });
+    if (isCorrect) { quizScore++; quizStreak++; document.getElementById('quiz-score').textContent = `Poeng: ${quizScore}`; }
+    else { quizStreak = 0; }
+    const feedback = document.getElementById('quiz-feedback');
+    feedback.classList.remove('hidden', 'bg-green-50', 'border-green-500', 'bg-red-50', 'border-red-500');
+    feedback.classList.add(isCorrect ? 'bg-green-50' : 'bg-red-50', isCorrect ? 'border-green-500' : 'border-red-500');
+    const xpGained = isCorrect ? XP_PER_CORRECT[selectedLevel] : 0;
+    feedback.innerHTML = isCorrect
+        ? `<span class="font-bold text-green-800">Riktig!</span> <span class="text-stone-600">+${xpGained} XP</span>${quizStreak >= 3 ? ` <span class="text-amber-600 font-bold ml-2">${quizStreak} streak!</span>` : ''}`
+        : `<span class="font-bold text-red-800">Feil.</span> <span class="text-stone-600">Riktig svar: <strong>${correctAnswer}</strong></span>`;
+    document.getElementById('quiz-next-btn').classList.remove('hidden');
+}
+
+function quizNext() {
+    quizIndex++;
+    if (quizIndex >= quizQuestions.length) showQuizResults();
+    else loadQuizQuestion();
+}
+
+function showQuizResults() {
+    document.getElementById('quiz-active').classList.add('hidden');
+    document.getElementById('quiz-result').classList.remove('hidden');
+
+    const pct = Math.round((quizScore / quizQuestions.length) * 100);
+    const totalXP = quizScore * XP_PER_CORRECT[selectedLevel];
+
+    document.getElementById('quiz-final-score').textContent = `${quizScore} / ${quizQuestions.length}`;
+    document.getElementById('quiz-final-pct').textContent = `${pct}%`;
+    document.getElementById('quiz-xp-earned').textContent = `+${totalXP} XP`;
+
+    let msg = '';
+    if (pct === 100) msg = 'Perfekt! Du er en ekte russisk-ekspert!';
+    else if (pct >= 80) msg = 'Veldig bra! Du har lært mye.';
+    else if (pct >= 60) msg = 'Bra jobbet! Fortsett å øve.';
+    else msg = 'Ikke gi opp! Prøv flashkortene og kom tilbake.';
+    document.getElementById('quiz-result-msg').textContent = msg;
+
+    const p = loadProgress();
+    p.quizzesCompleted++;
+    p.wordsLearned += quizScore;
+    if (quizStreak > p.bestStreak) p.bestStreak = quizStreak;
+    saveProgress(p);
+
+    const levelUp = addXP(totalXP);
+    const levelUpEl = document.getElementById('quiz-level-up');
+    if (levelUp) {
+        levelUpEl.classList.remove('hidden');
+        document.getElementById('quiz-new-level').textContent = `Du har nådd Nivå ${levelUp.num}: ${levelUp.name}! Nytt innhold er ulåst.`;
+    } else {
+        levelUpEl.classList.add('hidden');
+    }
+}
+
+// ===== INIT =====
+updateAllUI();
+renderAlphabet();
+</script>
 </body>
 </html>
